@@ -83,6 +83,7 @@ func main() {
 
 	// Register custom module types.
 	ctx.RegisterModuleType("alias", newAliasModuleFactory(config))
+	ctx.RegisterModuleType("clean", newCleanModuleFactory(config))
 	ctx.RegisterModuleType("cmake", newCMakeModuleFactory(config))
 	ctx.RegisterModuleType("copy", newCopyModuleFactory(config))
 	ctx.RegisterModuleType("gn", newGnModuleFactory(config))

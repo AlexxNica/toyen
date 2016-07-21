@@ -35,7 +35,7 @@ var (
 		blueprint.RuleParams{
 			Command: "$envVars $gnCmd gen $buildDir " +
 				"--root=$gnDir --script-executable=/usr/bin/env --args='$gnArgs'",
-			Generator: true,
+			Generator:   true,
 			Description: "gn $gnDir",
 		},
 		"envVars", "gnDir", "gnArgs", "buildDir")
@@ -81,6 +81,13 @@ var (
 			Description: "mkdir $out",
 		})
 
+	rm = pctx.StaticRule("rm",
+		blueprint.RuleParams{
+			Command:     "rm -rf $files",
+			Description: "rm $out",
+		},
+		"files")
+
 	stamp = pctx.StaticRule("stamp",
 		blueprint.RuleParams{
 			Command:     "touch $out",
@@ -123,6 +130,45 @@ func (a *Alias) GenerateBuildActions(ctx blueprint.ModuleContext) {
 		Outputs: []string{ctx.ModuleName()},
 		Inputs:  getDirectDependencies(ctx),
 	})
+}
+
+type Clean struct {
+	builderModule
+	properties struct {
+		Dirs []string
+	}
+	config Config
+}
+
+func newCleanModuleFactory(config Config) func() (blueprint.Module, []interface{}) {
+	return func() (blueprint.Module, []interface{}) {
+		module := &Clean{
+			config: config,
+		}
+		return module, []interface{}{&module.properties}
+	}
+}
+
+func (c *Clean) GenerateBuildActions(ctx blueprint.ModuleContext) {
+	c.targetName = ctx.ModuleName()
+
+	if len(c.properties.Dirs) != 0 {
+		// Add a rule for deleting all the specified files
+		ctx.Build(pctx, blueprint.BuildParams{
+			Rule:    rm,
+			Outputs: []string{ctx.ModuleName()},
+			Args: map[string]string{
+				"files": strings.Join(c.properties.Dirs, " "),
+			},
+			Implicits: getDirectDependencies(ctx),
+		})
+	} else {
+		ctx.Build(pctx, blueprint.BuildParams{
+			Rule:      blueprint.Phony,
+			Outputs:   []string{ctx.ModuleName()},
+			Implicits: getDirectDependencies(ctx),
+		})
+	}
 }
 
 type CMake struct {
